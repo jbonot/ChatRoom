@@ -1,159 +1,70 @@
 package chat.client;
-import java.io.*;
-import java.net.*;
-import java.util.concurrent.locks.*;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 /**
- * A node that joins a network and sends and receives messages from other nodes.
- * 
- * @author Jeanine
+ * Client class that connects to a port and sends the clients input and receives the servers output.
+ * @author Jack Galilee
+ * @version 1.0
  */
 public class Client {
-	public boolean done = false;
-	private PrintWriter writer;
-	private ServerSocket listener;
-	public static String EVENT_MESSAGE = "MESSAGE";
-	public static String EVENT_NODE_JOIN = "JOIN";
 
-	public static void main(String[] args) {
-		Client client = new Client();
+  // Socket for connecting with the server.
+  private Socket serverSocket;
 
-		// For debugging
-		String hostname = "";
-		int port = 9090;
-		try {
-			hostname = InetAddress.getLocalHost().getHostName();
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
+  // Thread for writing the users input to the servers output.
+  private StreamSwapper serverReader;
 
-		client.run(hostname, port);
-	}
+  // Thread for writing the servers output to the users output.
+  private StreamSwapper serverWriter;
 
-	/**
-	 * Main method for the node. Sends messages to and listens messages
-	 * from other nodes in the network.
-	 * 
-	 * @param hostname
-	 * @param port
-	 */
-	public void run(String hostname, int port) {
+  /**
+   * Connect with the provided server details and start reading and writing to the server.
+   * @param serverName Name of the server to connect to.
+   * @param portNumber Port of the server to connect to.
+   * @throws IOException
+   */
+  public Client(String serverName, int portNumber) {
 
-		try {
-			this.listener = new ServerSocket(port);
-		} catch (BindException be) {
-			// Do nothing.
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		try {
-			// Set up connections.
-			Socket socket = new Socket(hostname, port);
-			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    // Try and connect to the server.
+    try {
+      serverSocket = new Socket(serverName, portNumber);
 
-			// Start the receiver thread.
-			new Thread(new Receiver(socket)).start();
-			this.writer = new PrintWriter(socket.getOutputStream(), true);
-			
-			// Continue sending messages until the node leaves the network.
-			System.out.println("Enter a message.");
-			System.out.println("Type 'exit' to exit.");
-			while (true) {
-				String message = br.readLine();
-				
-				if (message.compareTo("exit") == 0) {
-					break;
-				}
-				this.sendString(message);
-			}
+      // Start a thread to read output from the server.
+      serverReader = new StreamSwapper(serverSocket.getInputStream(), System.out);
+      serverReader.start();
 
-			// Safely close connections.
-			socket.close();
-			this.listener.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+      // Start a thread to write input to the server.
+      serverWriter = new StreamSwapper(System.in, serverSocket.getOutputStream());
+      serverWriter.start();
 
-	/**
-	 * Sends message to the network.
-	 * @param text
-	 */
-	public void sendString(String text) {
-		this.writer.println(EVENT_MESSAGE);
-		this.writer.println(text);
-	}
+      // Keep the threads and socket active until we are finished.
+      boolean finished = false;
+      while(!finished);
 
-	/**
-	 * Receives incoming messages from other nodes in the network.
-	 * 
-	 * @author Jeanine
-	 */
-	private class Receiver implements Runnable {
-		Socket socket;
+      // Close the socket if we ever finish.
+      serverSocket.close();
 
-		/**
-		 * Initializes a new instance of the Receiver class.
-		 * @param socket
-		 */
-		public Receiver(Socket socket) {
-			this.socket = socket;
-		}
+    } catch (UnknownHostException e) {
+      System.err.println("Can't find the server.");
+      System.exit(-1);
 
-		@Override
-		/**
-		 * Keeps listening for data from other nodes and executes
-		 * the corresponding actions.
-		 */
-		public void run() {
-			try {
-				BufferedReader reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-				String event;
-				boolean done = false;
-				do {
-					event = reader.readLine();
-					System.out.println(event);
-					if (event.matches(EVENT_MESSAGE)){
-						// TODO: Read the message.
-						String author = reader.readLine();
-						String message = reader.readLine();
-						this.receiveString(message, author);
-					} else if (event.matches(EVENT_NODE_JOIN)) {
-						// TODO: Announce the new node.
-					}
-					
-					synchronized(Client.this) {
-						done = Client.this.done;
-					}
-				} while (!done);
-			} catch (IOException e) {
-				if (e.getMessage().matches("Socket closed")) {
-					return;
-				}
-				
-				e.printStackTrace();
-			}
-		}
+    } catch (IOException e) {
+      System.err.println("Couldn't get I/O from the server.");
+      System.exit(-1);
+    }
 
-		/**
-		 * Handles an incoming message from another node.
-		 * @param text
-		 * @param nodeId
-		 */
-		public void receiveString(String text, String author) {
-			System.out.println(author + " says: " + text);
-		}
+  }
 
-		/**
-		 * Handles the introduction of a new node to the network.
-		 * @param nodeId
-		 */
-		public void addNewNode(String name) {
-			System.out.println(name + " has joined.");
-		}
-
-	}
+  /**
+   * Executable method for running a client application.
+   * @param args Name of the server and its operating port.
+   */
+  public static void main(String[] args) {
+    @SuppressWarnings("unused")
+    Client clientApplication = new Client(args[0], Integer.valueOf(args[1]));
+  }
 
 }
