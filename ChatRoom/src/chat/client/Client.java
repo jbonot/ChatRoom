@@ -8,7 +8,7 @@ import java.util.concurrent.locks.*;
  * 
  * @author Jeanine
  */
-public class Chat {
+public class Client {
 	public boolean done = false;
 	private PrintWriter writer;
 	private ServerSocket listener;
@@ -16,7 +16,7 @@ public class Chat {
 	public static String EVENT_NODE_JOIN = "JOIN";
 
 	public static void main(String[] args) {
-		Chat chat = new Chat();
+		Client client = new Client();
 
 		// For debugging
 		String hostname = "";
@@ -27,7 +27,7 @@ public class Chat {
 			e.printStackTrace();
 		}
 
-		chat.run(hostname, port);
+		client.run(hostname, port);
 	}
 
 	/**
@@ -124,8 +124,8 @@ public class Chat {
 						// TODO: Announce the new node.
 					}
 					
-					synchronized(Chat.this) {
-						done = Chat.this.done;
+					synchronized(Client.this) {
+						done = Client.this.done;
 					}
 				} while (!done);
 			} catch (IOException e) {
