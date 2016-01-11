@@ -1,3 +1,4 @@
+package chat.client;
 import java.io.*;
 import java.net.*;
 import java.util.concurrent.locks.*;
@@ -113,6 +114,7 @@ public class Chat {
 				boolean done = false;
 				do {
 					event = reader.readLine();
+					System.out.println(event);
 					if (event.matches(EVENT_MESSAGE)){
 						// TODO: Read the message.
 						String author = reader.readLine();
