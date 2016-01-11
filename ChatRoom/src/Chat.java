@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.concurrent.locks.*;
 
 public class Chat {
 	public boolean done = false;
@@ -37,9 +38,14 @@ public class Chat {
 			out.println("Hello world");
 			System.out.println("Connected");
 			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			while (!done) {
+			boolean done = false;
+			do {
 				out.println(br.readLine());
-			}
+				synchronized (this) {
+					done = this.done;
+				}
+			} while (!done);
+
 			socket.close();
 			listener.close();
 			System.out.println("Done");
@@ -82,10 +88,12 @@ public class Chat {
 				while (message != "exit") {
 					System.out.println("Incoming message: " + message);
 				}
-				Chat.this.done = true;
+
+				synchronized (Chat.this) {
+					Chat.this.done = true;
+				}
 				System.out.println("Thread exit");
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
