@@ -2,6 +2,11 @@ import java.io.*;
 import java.net.*;
 import java.util.concurrent.locks.*;
 
+/**
+ * A node that joins a network and sends and receives messages from other nodes.
+ * 
+ * @author Jeanine
+ */
 public class Chat {
 	public boolean done = false;
 	private ServerSocket listener;
@@ -29,6 +34,13 @@ public class Chat {
 		chat.run(hostname, port);
 	}
 
+	/**
+	 * Main method for the node. Sends messages to and listens messages
+	 * from other nodes in the network.
+	 * 
+	 * @param hostname
+	 * @param port
+	 */
 	public void run(String hostname, int port) {
 		try {
 			Socket socket = this.setupConnection(hostname, port);
@@ -72,14 +84,27 @@ public class Chat {
 
 	}
 
+	/**
+	 * Receives incoming messages from other nodes in the network.
+	 * 
+	 * @author Jeanine
+	 */
 	private class Receiver implements Runnable {
 		Socket socket;
 
+		/**
+		 * Initializes a new instance of the Receiver class.
+		 * @param socket
+		 */
 		public Receiver(Socket socket) {
 			this.socket = socket;
 		}
 
 		@Override
+		/**
+		 * Keeps listening for data from other nodes and executes
+		 * the corresponding actions.
+		 */
 		public void run() {
 			try {
 				System.out.println("Thread Run");
@@ -98,11 +123,20 @@ public class Chat {
 			}
 		}
 
+		/**
+		 * Handles an incoming message from another node.
+		 * @param text
+		 * @param nodeId
+		 */
 		public void receiveString(String text, int nodeId) {
 
 		}
 
-		public void addNode(int nodeId) {
+		/**
+		 * Handles the introduction of a new node to the network.
+		 * @param nodeId
+		 */
+		public void addNewNode(int nodeId) {
 
 		}
 
