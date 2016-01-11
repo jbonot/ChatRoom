@@ -50,19 +50,12 @@ public class StreamSwapper extends Thread {
 
 		// Create a writer for the output stream.
 		PrintWriter outputWriter = new PrintWriter(outputStream, true);
-		Pattern pattern = Pattern.compile(".*: (.*)");
 		// Buffer each new line from the reader and write it to the output
 		// stream.
 		try {
 			String lineBuffer;
 			while ((lineBuffer = inputReader.readLine()) != null) {
-				Matcher matcher = pattern.matcher(lineBuffer);
-				if (matcher.find()) {
-					this.masterString = matcher.group(1);
-					outputWriter.println(this.masterString);
-				} else {
-					outputWriter.println(lineBuffer);
-				}
+				outputWriter.println(lineBuffer);
 			}
 
 			// Close the input reader and output writer when we're finished.
