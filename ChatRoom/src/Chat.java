@@ -10,7 +10,6 @@ import java.util.concurrent.locks.*;
 public class Chat {
 	public boolean done = false;
 	private ServerSocket listener;
-	private Socket socket;
 
 	public static void main(String[] args) {
 
