@@ -9,16 +9,12 @@ import java.util.concurrent.locks.*;
  */
 public class Chat {
 	public boolean done = false;
+	private PrintWriter writer;
 	private ServerSocket listener;
+	public static String EVENT_MESSAGE = "MESSAGE";
+	public static String EVENT_NODE_JOIN = "JOIN";
 
 	public static void main(String[] args) {
-
-		try {
-			System.out.println("My IP Address: " + InetAddress.getLocalHost());
-		} catch (UnknownHostException e) {
-			e.printStackTrace();
-		}
-
 		Chat chat = new Chat();
 
 		// For debugging
@@ -41,46 +37,52 @@ public class Chat {
 	 * @param port
 	 */
 	public void run(String hostname, int port) {
-		try {
-			Socket socket = this.setupConnection(hostname, port);
-			Thread receiver = new Thread(new Receiver(socket));
-			receiver.start();
-			PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-			out.println("Hello world");
-			System.out.println("Connected");
-			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-			boolean done = false;
-			do {
-				out.println(br.readLine());
-				synchronized (this) {
-					done = this.done;
-				}
-			} while (!done);
 
-			socket.close();
-			listener.close();
-			System.out.println("Done");
+		try {
+			this.listener = new ServerSocket(port);
+		} catch (BindException be) {
+			// Do nothing.
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		try {
+			// Set up connections.
+			Socket socket = new Socket(hostname, port);
+			BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+			// Start the receiver thread.
+			new Thread(new Receiver(socket)).start();
+			this.writer = new PrintWriter(socket.getOutputStream(), true);
+			
+			// Continue sending messages until the node leaves the network.
+			System.out.println("Enter a message.");
+			System.out.println("Type 'exit' to exit.");
+			while (true) {
+				String message = br.readLine();
+				
+				if (message.compareTo("exit") == 0) {
+					break;
+				}
+				this.sendString(message);
+			}
+
+			// Safely close connections.
+			socket.close();
+			this.listener.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
-	public Socket setupConnection(String hostname, int port) throws IOException {
-		// this.listener = new ServerSocket(port);
-		return new Socket(hostname, port);
-	}
-
-	public void createNodeNetwork() {
-
-	}
-
-	public void joinNodeNetwork() {
-
-	}
-
+	/**
+	 * Sends message to the network.
+	 * @param text
+	 */
 	public void sendString(String text) {
-
+		this.writer.println(EVENT_MESSAGE);
+		this.writer.println(text);
 	}
 
 	/**
@@ -106,18 +108,29 @@ public class Chat {
 		 */
 		public void run() {
 			try {
-				System.out.println("Thread Run");
-				BufferedReader in = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-				String message = in.readLine();
-				while (message != "exit") {
-					System.out.println("Incoming message: " + message);
-				}
-
-				synchronized (Chat.this) {
-					Chat.this.done = true;
-				}
-				System.out.println("Thread exit");
+				BufferedReader reader = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+				String event;
+				boolean done = false;
+				do {
+					event = reader.readLine();
+					if (event.matches(EVENT_MESSAGE)){
+						// TODO: Read the message.
+						String author = reader.readLine();
+						String message = reader.readLine();
+						this.receiveString(message, author);
+					} else if (event.matches(EVENT_NODE_JOIN)) {
+						// TODO: Announce the new node.
+					}
+					
+					synchronized(Chat.this) {
+						done = Chat.this.done;
+					}
+				} while (!done);
 			} catch (IOException e) {
+				if (e.getMessage().matches("Socket closed")) {
+					return;
+				}
+				
 				e.printStackTrace();
 			}
 		}
@@ -127,16 +140,16 @@ public class Chat {
 		 * @param text
 		 * @param nodeId
 		 */
-		public void receiveString(String text, int nodeId) {
-
+		public void receiveString(String text, String author) {
+			System.out.println(author + " says: " + text);
 		}
 
 		/**
 		 * Handles the introduction of a new node to the network.
 		 * @param nodeId
 		 */
-		public void addNewNode(int nodeId) {
-
+		public void addNewNode(String name) {
+			System.out.println(name + " has joined.");
 		}
 
 	}
